@@ -115,7 +115,7 @@ def goodness_of_split(data, feature, impurity_func, gain_ratio=False):
     split_information = 0
 
     for value in values_dict:
-        sub_data = data[data[:,feature] == value]
+        sub_data = data[data[:,feature] == value] # get the subset of data with the current value
         sub_data_size = values_dict[value]
         groups[value] = sub_data
         sum_of_impurities += (sub_data_size / data_size) * impurity_func(sub_data)
@@ -151,6 +151,7 @@ class DecisionNode:
         - pred: the prediction of the node
         """
         labels_dict = count_labels(self.data, -1)
+        
         return max(labels_dict, key = labels_dict.get)
         
     def add_child(self, node, val):
@@ -173,25 +174,37 @@ class DecisionNode:
 
         This function has no return value
         """
-        goodness_of_splits_list = []
-        groups_list = []
+        max_goodness = 0
+        max_groups = []
 
         for feature in range(self.data.shape[1] - 1):
             goodness_value, groups = goodness_of_split(self.data, feature, impurity_func, self.gain_ratio)
-            goodness_of_splits_list.append(goodness_value)
-            groups_list.append(groups)
+            if goodness_value > max_goodness:
+                max_groups = groups
+                max_goodness = goodness_value
+                self.feature = feature
         
-        self.feature = goodness_of_splits_list.index(max(goodness_of_splits_list))
-        if len(groups_list[self.feature]) <= 1:
+        if len(max_groups) <= 1:
             self.terminal = True
-            return 
-        for value, data in groups_list[self.feature].items():
+            return
+         
+        #create children
+        for value, data in max_groups.items():
             new_node = DecisionNode(data, depth=self.depth+1, chi=self.chi, max_depth=self.max_depth, gain_ratio=self.gain_ratio)
             self.add_child(new_node, value)
 
+
     def calc_chi_value(self):
+        """
+        Calculate the chi value of the current node.
+
+        Returns:
+        - chi_value: the chi value of the node
+        """
+        
         chi_value = 0
         labels_dict = count_labels(self.data, -1)
+        # calculate the probabilities of each label and store them in a dictionary
         probabilities = {label:num_of_labels / self.data.shape[0] for label,num_of_labels in labels_dict.items()}
         for child in self.children:
             child_labels_dict = count_labels(child.data, -1)
@@ -207,7 +220,13 @@ class DecisionNode:
         return chi_value
 
     def is_random(self):
-        DOF = len(self.children_values) - 1
+        """
+        Decides whether the current node split is random.
+
+        Returns:
+        - boolean: if the split was random
+        """
+        DOF = len(self.children_values) - 1 #degrees of freedom
 
         if self.chi == 1 or DOF < 1: 
             return False
@@ -283,6 +302,7 @@ def calc_accuracy(node, dataset):
 
     return accuracy / dataset.shape[0]
 
+
 def depth_pruning(X_train, X_test):
     """
     Calculate the training and testing accuracies for different depths
@@ -332,6 +352,7 @@ def chi_pruning(X_train, X_test):
 
     return chi_training_acc, chi_testing_acc, depth
 
+
 def count_nodes(node, nodes_counter = 0):
     """
     Count the number of node in a given tree
@@ -348,10 +369,28 @@ def count_nodes(node, nodes_counter = 0):
 
 
 def count_labels(data, feature):
+    """Creates a dictionary of the labels and their count in a certain column in the data
+
+    Args:
+        data: the data to count the labels in
+        feature: the index of the column
+
+    Returns:
+        dict: a dictionary of the labels and their count
+    """
     arr, count = np.unique(data[:, feature], return_counts= True)
     return dict(zip(arr,count))
 
+
 def get_tree_depth(root):
+    """Calculates the depth of a tree
+
+    Args:
+        root: the root of the tree
+
+    Returns:
+        Int: the depth of the tree
+    """
     if root.terminal:
         return root.depth
     
