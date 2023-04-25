@@ -364,8 +364,11 @@ def count_nodes(node, nodes_counter = 0):
     """
     if node.terminal:
         return 1
-    
-    return sum([count_nodes(child) for child in node.children])
+    else:
+        count = 1
+        for child in node.children:
+            count += count_nodes(child)
+        return count
 
 
 def count_labels(data, feature):
