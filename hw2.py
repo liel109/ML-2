@@ -300,7 +300,7 @@ def calc_accuracy(node, dataset):
         if predict(node, row) == row[-1]:
             accuracy += 1
 
-    return accuracy / dataset.shape[0]
+    return (accuracy / dataset.shape[0]) * 100
 
 
 def depth_pruning(X_train, X_test):
